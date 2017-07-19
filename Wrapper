@@ -1,0 +1,1048 @@
+package MyAcc;
+
+import org.testng.annotations.Test;
+
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.URL;
+import java.net.URLConnection;
+import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+
+import org.json.JSONObject;
+import org.testng.TestListenerAdapter;
+import org.testng.TestNG;
+import org.testng.annotations.BeforeTest;
+import org.testng.xml.XmlClass;
+import org.testng.xml.XmlSuite;
+import org.testng.xml.XmlTest;
+
+import Utilities.DBManager;
+import Utilities.ExcelUtils;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import org.apache.commons.codec.binary.Base64;
+
+public class Wrapper {
+
+	String docUploadQuery = "SELECT top 10 ld.CustomerID,ld.MobileNo,bdp.BookingID,Count(DP.DocUrl) As DocCount FROM Customer.BookingDocPoints as bdp (nolock) INNER JOIN pbcroma.CRM.BookingDetails as bd (nolock) on bdp.BookingID=bd.LeadID and bdp.IsActive=1 INNER JOIN [customer].[DocPointsDetails] DP (NOLOCK) ON bdp.DocPointsID = DP.DocPointsID AND DP.IsActive=1 inner join PBCROMA.CRM.Leaddetails ld (nolock) on bdp.BookingID=ld.LEADID inner join PBCROMA.CRM.LeadStatus ls (nolock) on ld.LeadID=ls.LeadID and IsLastStatus=1 and ls.StatusID in (37,55) and ls.SubStatusID in (295,296,467,468,470,471,473,474,476,477) WHERE bdp.IsDeleted=0 AND bdp.StatusID IN (0,1) and ld.ProductID = ";
+	String docUploadQuery2 = " AND bdp.CreatedOn > GETDATE()-5 group by ld.CustomerID,ld.MobileNo,bdp.BookingID";
+	String ProductWiseDBQuery = "select distinct top 12 prd.ProductName,cldt.CustomerID,ld.MobileNo FROM [customer].[CustomerLoginDetails] cldt (NOLOCK) inner join PBCROMA.CRM.Leaddetails ld (nolock) on cldt.CustomerId=ld.CustomerID inner join PBCROMA.CRM.BookingDetails bd (nolock) on bd.LEADID=ld.LeadID inner join PBCROMA.CRM.AdditionalBookingDetails AS AB (NOLOCK) ON AB.LeadID=BD.LEADID  AND ISNULL(AB.InCreditPendingPool,0)!=1 inner join PBCROMA.CRM.FulfillmentDetails AS FFD (NOLOCK) ON AB.LeadID=FFD.LeadId AND ISNULL(FFD.BlockAutoCommunication,0)!=1 inner join PBCROMA.dbo.Products prd (nolock) on ld.ProductID=prd.ID inner join PBCROMA.CRM.LeadStatus AS LS (NOLOCK) ON BD.LEADID=LS.LeadID AND LS.IsLastStatus=1 AND LS.StatusID>=13 AND LS.StatusID NOT IN (50,14,16,18,20,22,23,25,27,29,31,33) AND LS.SubStatusID NOT IN (94,24) AND (bd.PaymentSTATUS=300 OR LS.SubStatusID=319) LEFT JOIN PBCroma.CRM.InvalidMobileNumbers IMN  WITH (NOLOCK)  ON LD.MobileNo=IMN.MobileNo where cldt.LoginDate > GETDATE()-1 AND IMN.id IS NULL and ld.MobileNo not in ('9716743933','9386125574','7760410144','7838770189','9908991116') and ld.ProductID =";
+	String ProductWiseSearchQuery = "SELECT  LD.CustomerID,LD.MobileNo FROM  PBCROMA.CRM.Leaddetails LD (NOLOCK) INNER JOIN PBCROMA.CRM.LeadStatus AS LS (NOLOCK) ON LS.LeadID=LD.LeadID AND IsLastStatus=1 AND LS.StatusID < 13 LEFT JOIN PBCroma.CRM.InvalidMobileNumbers IMN  WITH (NOLOCK)  ON LD.MobileNo=IMN.MobileNo WHERE  LD.CreatedON>GETDATE()-1 AND IMN.id IS NULL AND LD.LeadSource IN ('PB','PBMobile','PBMOBILEAPP','Inbound') AND LD.ProductID =";
+	String ProductWiseRenewalQuery = "select DISTINCT top 12 prd.ProductName,cldt.CustomerID,ld.MobileNo,cldt.LoginDate  FROM [customer].[CustomerLoginDetails] cldt (NOLOCK) inner join PBCROMA.CRM.Leaddetails ld (nolock) on cldt.CustomerId=ld.CustomerID inner join PBCROMA.CRM.BookingDetails bd (nolock) on bd.LEADID=ld.LeadID inner join PBCROMA.CRM.AdditionalBookingDetails AS AB (NOLOCK) ON AB.LeadID=BD.LEADID  AND ISNULL(AB.InCreditPendingPool,0)!=1 inner join PBCROMA.CRM.FulfillmentDetails AS FFD (NOLOCK) ON AB.LeadID=FFD.LeadId AND ISNULL(FFD.BlockAutoCommunication,0)!=1 inner join PBCROMA.dbo.Products prd (nolock) on ld.ProductID=prd.ID inner join PBCROMA.CRM.LeadStatus AS LS (NOLOCK) ON BD.LEADID=LS.LeadID AND LS.StatusID>=13 AND LS.SubStatusID>=319 AND LS.StatusID NOT IN (50,14,16,18,20,22,23,25,27,29,31,33) AND LS.SubStatusID NOT IN (94,24) LEFT JOIN PBCroma.CRM.InvalidMobileNumbers IMN  WITH (NOLOCK) ON LD.MobileNo=IMN.MobileNo where cldt.LoginDate > GETDATE()-1 AND IMN.id IS NULL and ld.MobileNo not in ('9716743933','9386125574','7760410144','7838770189','9908991116') and ld.ProductID =";
+	String RenewalQueryPart2 = "and LeadSource='Renewal' order by cldt.LoginDate desc";
+
+	private String renewalCheck = " and LeadSource='Renewal'";
+
+	String reportPath = "C:\\eclipse\\Report.xls";
+	String reportSummarySheetName = "ReportSummary";
+
+	int healthProductID = 2;
+	int investmentProductID = 115;
+	int termProductID = 7;
+	int carProductID = 117;
+
+	int carCount = 0;
+	int investmentCount = 0;
+	int termCount = 0;
+	int healthCount = 0;
+
+	int carCount1 = 0;
+	int investmentCount1 = 0;
+	int termCount1 = 0;
+	int healthCount1 = 0;
+
+	int carCustCount = 0;
+	int investmentCustCount = 0;
+	int termCustCount = 0;
+	int healthCustCount = 0;
+
+	int allCarPolicies = 0;
+	int allInvestmentPolicies = 0;
+	int allHealthPolicies = 0;
+	int allTermPolicies = 0;
+
+	int carSuccessCount = 0;
+	int healthSuccessCount = 0;
+	int termSuccessCount = 0;
+	int investmentSuccessCount = 0;
+
+	int carCorruptCopyCount = 0;
+	int investmentCorruptCopyCount = 0;
+	int termCorruptCopyCount = 0;
+	int healthCorruptCopyCount = 0;
+
+	String productName = null;
+
+	int isRenewal = 0;
+	int carRenewalRow = 5;
+	int healthRenewalRow = 6;
+
+	String emailFrom = "CustomerAccount@policybazaar.com";
+	String emailTo1 = "Email1";
+	String emailTo2 = "Email2";
+	String emailCC1 = "";
+	String emailCC2 = "";
+
+	String emailSubject = "Automation Report:";
+	String emailBody = "PFA Automation Report.";
+
+	private final boolean IS_CHUNKED = true;
+	String fileToEncode = "C:\\eclipse\\Report.xls";
+	String encodedFilePath = "C:\\eclipse\\encoded.txt";
+
+	String apiURL = "http://qamatrixapi.policybazaar.com/Communication/Communication.svc/send";
+
+	HashMap<String, String> perProdCustCount = new HashMap<String, String>();
+
+	DBManager dbm = new DBManager();
+
+	@SuppressWarnings("deprecation")
+	@BeforeTest(alwaysRun = true)
+	public void GenerateXML1() throws Exception {
+
+		TestListenerAdapter tla = new TestListenerAdapter();
+		TestNG tng = new TestNG();
+		tng.addListener(tla);
+
+		XmlSuite suite = new XmlSuite();
+
+		suite.setName("Suite");
+
+		// dbm.DBConnection(DB_Path, DB_username, DB_password);
+
+		dbm.DBConnection(LiveDB_Path, Liveusename, Livepassword);
+
+		HashMap<String, String> productID = new HashMap<String, String>();
+
+		productID.put("Health", String.valueOf(healthProductID));
+		productID.put("Investment", String.valueOf(investmentProductID));
+		productID.put("Term", String.valueOf(termProductID));
+		productID.put("Car", String.valueOf(carProductID));
+
+		HashMap<String, String> input = new HashMap<String, String>();
+
+		// Final Loop - For each product - and each booking of every product
+		// taken.
+
+		int resultCounter = 0;
+
+		// TODO
+		for (String key : productID.keySet()) {
+
+			String NewLeadsUpdatedQuery = ProductWiseDBQuery + productID.get(key);
+
+			// String NewLeadsUpdatedQuery = ProductWiseRenewalQuery +
+			// productID.get(key) + RenewalQueryPart2;
+
+			// String updatedSearchQuery = ProductWiseSearchQuery +
+			// productID.get(key);
+
+			System.out.println("updatedQuery :" + NewLeadsUpdatedQuery);
+
+			ResultSet resultSet = dbm.GetResultSet(NewLeadsUpdatedQuery);
+
+			// TODO Searched PRoduct ResultSet - CustomerID, MobileNumber
+			// ResultSet searchResultSet =
+			// dbm.GetResultSet(ProductWiseSearchQuery);
+
+			int resultSetSize = 0;
+
+			while (resultSet.next()) {
+
+				resultSet.beforeFirst();
+				resultSet.last();
+				resultSetSize = resultSet.getRow();
+
+			}
+
+			perProdCustCount.put(key, String.valueOf(resultSetSize));
+
+			System.out.println("perProductCustomerCounter :" + key + " - " + perProdCustCount.get(key));
+
+			resultSet.beforeFirst();
+
+			System.out.println("Result Set Size :" + resultSetSize);
+
+			while (resultSet.next()) {
+
+				resultCounter = resultCounter + 1;
+				System.out.println("Product :" + resultSet.getString(1));
+				System.out.println("Customer :" + resultSet.getString(2));
+
+				// Getting prod names sorted
+				if (resultSet.getString(1).contains("Car")) {
+					productName = "Car";
+				} else if (resultSet.getString(1).contains("Health")) {
+					productName = "Health";
+				} else if (resultSet.getString(1).contains("Invest")) {
+					productName = "Investment";
+				} else if (resultSet.getString(1).contains("Term")) {
+					productName = "Term";
+				}
+
+				System.out.println("Converted Product Name : " + productName);
+
+				input.put("product", productName);
+				input.put("customer", resultSet.getString(2));
+				input.put("mobile", resultSet.getString(3));
+				input.put("resultCounter", String.valueOf(resultCounter));
+
+				///////////////////////////////////
+
+				System.out.println("Creating xml");
+
+				XmlTest test = new XmlTest(suite);
+
+				test.setName("Test");
+
+				test.setParameters(input);
+
+				List<XmlClass> classes = new ArrayList<XmlClass>();
+
+				classes.add(new XmlClass("MyAcc.MA_Sanity"));
+
+				test.setXmlClasses(classes);
+
+				List<XmlTest> myTests = new ArrayList<XmlTest>();
+				myTests.add(test);
+
+				suite.setTests(myTests);
+
+				List<XmlSuite> mySuites = new ArrayList<XmlSuite>();
+				mySuites.add(suite);
+
+				tng.setXmlSuites(mySuites);
+
+				System.out.println("Running set");
+
+				tng.run();
+
+				System.out.println("Running set 2");
+
+			}
+
+		}
+
+		// Get Renewal Data for Health and Car
+
+		HashMap<String, String> renewalProductID = new HashMap<String, String>();
+
+		renewalProductID.put("Health", String.valueOf(healthProductID));
+		renewalProductID.put("Car", String.valueOf(carProductID));
+
+		for (String key : renewalProductID.keySet()) {
+
+			ResultSet renewalResultSet = null;
+
+			System.out.println("productID :" + renewalProductID.get(key));
+
+			String renewalLeadsUpdatedQuery = ProductWiseDBQuery + renewalProductID.get(key) + renewalCheck;
+
+			System.out.println("RenewalsupdatedQuery :" + renewalLeadsUpdatedQuery);
+
+			// if (key.contains("Health") || key.contains("Car")) {
+
+			// String renewalLeadsUpdatedQuery = NewLeadsUpdatedQuery +
+			// renewalCheck;
+
+			System.out.println("RenewalsupdatedQuery :" + renewalLeadsUpdatedQuery);
+
+			renewalResultSet = dbm.GetResultSet(renewalLeadsUpdatedQuery);
+
+			while (renewalResultSet.next()) {
+
+				resultCounter = resultCounter + 1;
+
+				System.out.println("Result counter 2 :" + resultCounter);
+				System.out.println("Product 2 :" + renewalResultSet.getString(1));
+				System.out.println("Customer 2 :" + renewalResultSet.getString(2));
+
+				HashMap<String, String> renewalInput = new HashMap<String, String>();
+
+				if (renewalResultSet.getString(1).contains("Car")) {
+					productName = "Car";
+				} else if (renewalResultSet.getString(1).contains("Health")) {
+					productName = "Health";
+				}
+
+				System.out.println("Renewal Converted Product Name : " + productName);
+
+				renewalInput.put("product", productName + " Renewal");
+				renewalInput.put("customer", renewalResultSet.getString(2));
+				renewalInput.put("mobile", renewalResultSet.getString(3));
+				renewalInput.put("resultCounter", String.valueOf(resultCounter));
+
+				///////////////////////////////////
+
+				System.out.println("Creating xml");
+
+				XmlTest test = new XmlTest(suite);
+
+				test.setName("Test");
+
+				test.setParameters(renewalInput);
+
+				List<XmlClass> classes = new ArrayList<XmlClass>();
+
+				classes.add(new XmlClass("MyAcc.MA_Sanity"));
+
+				test.setXmlClasses(classes);
+
+				List<XmlTest> myTests = new ArrayList<XmlTest>();
+				myTests.add(test);
+
+				suite.setTests(myTests);
+
+				List<XmlSuite> mySuites = new ArrayList<XmlSuite>();
+				mySuites.add(suite);
+
+				tng.setXmlSuites(mySuites);
+
+				tng.run();
+			}
+		}
+
+		/*
+		 * HashMap<String, String> DocUploadProducts = new HashMap<String,
+		 * String>();
+		 * 
+		 * DocUploadProducts.put("Investment",
+		 * String.valueOf(investmentProductID)); DocUploadProducts.put("Term",
+		 * String.valueOf(termProductID));
+		 * 
+		 * for (String key : DocUploadProducts.keySet()){
+		 * 
+		 * String UpdatedDocUploadQuery = docUploadQuery +
+		 * DocUploadProducts.get(key) + docUploadQuery2;
+		 * 
+		 * ResultSet DocUploadResultSet =
+		 * dbm.GetResultSet(UpdatedDocUploadQuery);
+		 * 
+		 * System.out.println("Updated Doc Upload Query :"
+		 * +UpdatedDocUploadQuery);
+		 * 
+		 * resultCounter = 0;
+		 * 
+		 * System.out.println("Entering Doc Upload ResultSet");
+		 * 
+		 * while (DocUploadResultSet.next()) {
+		 * 
+		 * resultCounter = resultCounter + 1; System.out.println("Customer 1:" +
+		 * DocUploadResultSet.getString(1));
+		 * 
+		 * input.put("customer", DocUploadResultSet.getString(1));
+		 * input.put("mobile", DocUploadResultSet.getString(2));
+		 * input.put("booking", DocUploadResultSet.getString(3));
+		 * input.put("count", String.valueOf(DocUploadResultSet.getString(4)));
+		 * input.put("resultCounter", String.valueOf(resultCounter));
+		 * 
+		 * ///////////////////////////////////
+		 * 
+		 * System.out.println("Creating xml");
+		 * 
+		 * XmlTest test = new XmlTest(suite);
+		 * 
+		 * test.setName("Test");
+		 * 
+		 * test.setParameters(input);
+		 * 
+		 * List<XmlClass> classes = new ArrayList<XmlClass>();
+		 * 
+		 * classes.add(new XmlClass("MyAcc.DocsUploadCheck"));
+		 * 
+		 * test.setXmlClasses(classes);
+		 * 
+		 * List<XmlTest> myTests = new ArrayList<XmlTest>(); myTests.add(test);
+		 * 
+		 * suite.setTests(myTests);
+		 * 
+		 * List<XmlSuite> mySuites = new ArrayList<XmlSuite>();
+		 * mySuites.add(suite);
+		 * 
+		 * tng.setXmlSuites(mySuites);
+		 * 
+		 * tng.run(); } }
+		 */
+
+		dbm.tear();
+	}
+
+	// TODO
+	@Test(priority = 1)
+	public void read() throws Exception {
+
+		Thread.sleep(2000);
+		HashMap<String, String> SuccessCount = new HashMap<String, String>();
+		HashMap<String, String> SoftCopyFailCases = new HashMap<String, String>();
+		HashMap<String, String> StatusFailCases = new HashMap<String, String>();
+		HashMap<String, String> AllPoliciesCount = new HashMap<String, String>();
+		HashMap<String, String> perProdCustCount1 = new HashMap<String, String>();
+		HashMap<String, String> policyCorruptCount = new HashMap<String, String>();
+
+		ExcelUtils.SetExcelFile("C:\\eclipse\\Report.xls", "Policies & Details");
+
+		for (int i = 1; i <= 100; i++) {
+
+			String prod = ExcelUtils.GetCellData(i, 1);
+
+			System.out.println("Summary Sheet Loop Product :" + prod);
+
+			if (prod.equalsIgnoreCase("Car")) {
+
+				if (getSoftCopyCount(i) != 0) {
+					carCount = carCount + 1;
+				}
+				// carCount += getSoftCopyCount(i);
+				if (getStatusCount(i) != 0) {
+					carCount1 = carCount1 + 1;
+				}
+
+				if (getAllPolicyCount(i) != 0) {
+
+					allCarPolicies += getAllPolicyCount(i);
+
+				}
+
+				if (getPolicyCopyCorruptCount(i) != 0) {
+					carCorruptCopyCount = carCorruptCopyCount + 1;
+				}
+
+				carSuccessCount += getSuccessCount(i);
+
+				System.out.println("carSuccessCount :" + carSuccessCount);
+
+				carCustCount += getProductWiseCustCount(i);
+
+			}
+
+			if (prod.equalsIgnoreCase("Health")) {
+				if (getSoftCopyCount(i) != 0) {
+					healthCount = healthCount + 1;
+				}
+				// healthCount += getSoftCopyCount(i);
+				if (getStatusCount(i) != 0) {
+					healthCount1 = healthCount1 + 1;
+				}
+
+				if (getAllPolicyCount(i) != 0) {
+
+					allHealthPolicies += getAllPolicyCount(i);
+
+				}
+
+				if (getPolicyCopyCorruptCount(i) != 0) {
+					healthCorruptCopyCount = healthCorruptCopyCount + 1;
+				}
+
+				healthSuccessCount += getSuccessCount(i);
+
+				System.out.println("healthSuccessCount :" + healthSuccessCount);
+
+				healthCustCount += getProductWiseCustCount(i);
+
+			}
+
+			if (prod.equalsIgnoreCase("Investment")) {
+
+				System.out.println("Entered Investment");
+				if (getSoftCopyCount(i) != 0) {
+					investmentCount = investmentCount + 1;
+				}
+				// investmentCount += getSoftCopyCount(i);
+				if (getStatusCount(i) != 0) {
+					investmentCount1 = investmentCount1 + 1;
+				}
+
+				if (getAllPolicyCount(i) != 0) {
+
+					allInvestmentPolicies += getAllPolicyCount(i);
+
+				}
+
+				if (getPolicyCopyCorruptCount(i) != 0) {
+					investmentCorruptCopyCount = investmentCorruptCopyCount + 1;
+				}
+
+				investmentSuccessCount += getSuccessCount(i);
+
+				System.out.println("investmentSuccessCount :" + investmentSuccessCount);
+
+				investmentCustCount += getProductWiseCustCount(i);
+
+			}
+
+			if (prod.equalsIgnoreCase("Term")) {
+				if (getSoftCopyCount(i) != 0) {
+					termCount = termCount + 1;
+				}
+				// termCount += getSoftCopyCount(i);
+				if (getStatusCount(i) != 0) {
+					termCount1 = termCount1 + 1;
+				}
+				if (getAllPolicyCount(i) != 0) {
+
+					allTermPolicies += getAllPolicyCount(i);
+
+				}
+				if (getPolicyCopyCorruptCount(i) != 0) {
+					termCorruptCopyCount = termCorruptCopyCount + 1;
+				}
+
+				termSuccessCount += getSuccessCount(i);
+
+				System.out.println("termSuccessCount :" + termSuccessCount);
+
+				termCustCount += getProductWiseCustCount(i);
+
+			}
+		}
+
+		perProdCustCount1.put("Car", String.valueOf(carCustCount));
+		perProdCustCount1.put("Health", String.valueOf(healthCustCount));
+		perProdCustCount1.put("Investment", String.valueOf(investmentCustCount));
+		perProdCustCount1.put("Term", String.valueOf(termCustCount));
+
+		AllPoliciesCount.put("Car", String.valueOf(allCarPolicies));
+		AllPoliciesCount.put("Health", String.valueOf(allHealthPolicies));
+		AllPoliciesCount.put("Investment", String.valueOf(allInvestmentPolicies));
+		AllPoliciesCount.put("Term", String.valueOf(allTermPolicies));
+
+		SuccessCount.put("Car", String.valueOf(carSuccessCount));
+		SuccessCount.put("Health", String.valueOf(healthSuccessCount));
+		SuccessCount.put("Investment", String.valueOf(investmentSuccessCount));
+		SuccessCount.put("Term", String.valueOf(termSuccessCount));
+
+		SoftCopyFailCases.put("Car", String.valueOf(carCount));
+		SoftCopyFailCases.put("Health", String.valueOf(healthCount));
+		SoftCopyFailCases.put("Investment", String.valueOf(investmentCount));
+		SoftCopyFailCases.put("Term", String.valueOf(termCount));
+
+		StatusFailCases.put("Car", String.valueOf(carCount1));
+		StatusFailCases.put("Health", String.valueOf(healthCount1));
+		StatusFailCases.put("Investment", String.valueOf(investmentCount1));
+		StatusFailCases.put("Term", String.valueOf(termCount1));
+
+		policyCorruptCount.put("Car", String.valueOf(carCorruptCopyCount));
+		policyCorruptCount.put("Health", String.valueOf(healthCorruptCopyCount));
+		policyCorruptCount.put("Investment", String.valueOf(investmentCorruptCopyCount));
+		policyCorruptCount.put("Term", String.valueOf(termCorruptCopyCount));
+
+		for (String key : AllPoliciesCount.keySet()) {
+
+			System.out.println(key + " All Policies Count " + Integer.parseInt(AllPoliciesCount.get(key)));
+		}
+
+		for (String key : StatusFailCases.keySet()) {
+
+			System.out.println(key + " Success Count " + Integer.parseInt(SuccessCount.get(key)));
+		}
+
+		for (String key : SoftCopyFailCases.keySet()) {
+
+			System.out.println(key + " Soft Copy Fail Count " + Integer.parseInt(SoftCopyFailCases.get(key)));
+		}
+
+		for (String key : StatusFailCases.keySet()) {
+
+			System.out.println(key + " Status Fail Count " + Integer.parseInt(StatusFailCases.get(key)));
+		}
+
+		for (String key : policyCorruptCount.keySet()) {
+
+			System.out.println(key + " Policy Copy corrupt Count " + Integer.parseInt(policyCorruptCount.get(key)));
+		}
+
+		System.out.println("In here for Normal cases");
+
+		ExcelUtils.SetSummarySheet(reportPath, reportSummarySheetName, perProdCustCount1, AllPoliciesCount,
+				SuccessCount, SoftCopyFailCases, StatusFailCases, policyCorruptCount);
+
+	}
+
+	// TODO
+	@Test(priority = 2)
+	public void readRenewals() throws Exception {
+
+		Thread.sleep(2000);
+		HashMap<String, String> SuccessCount = new HashMap<String, String>();
+		HashMap<String, String> SoftCopyFailCases = new HashMap<String, String>();
+		HashMap<String, String> StatusFailCases = new HashMap<String, String>();
+		HashMap<String, String> AllPoliciesCount = new HashMap<String, String>();
+		HashMap<String, String> perProdCustCount1 = new HashMap<String, String>();
+
+		ExcelUtils.SetExcelFile("C:\\eclipse\\Report.xls", "Policies & Details");
+
+		carCount = 0;
+		carCount1 = 0;
+		allCarPolicies = 0;
+		carSuccessCount = 0;
+		carCustCount = 0;
+
+		healthCount = 0;
+		healthCount1 = 0;
+		allHealthPolicies = 0;
+		healthSuccessCount = 0;
+		healthCustCount = 0;
+
+		for (int i = 1; i <= 100; i++) {
+
+			String prod = ExcelUtils.GetCellData(i, 1);
+
+			System.out.println("Summary Sheet Loop Product :" + prod);
+
+			if (prod.equalsIgnoreCase("Car Renewal")) {
+
+				if (getSoftCopyCount(i) != 0) {
+					carCount = carCount + 1;
+				}
+				// carCount += getSoftCopyCount(i);
+				if (getStatusCount(i) != 0) {
+					carCount1 = carCount1 + 1;
+				}
+
+				if (getAllPolicyCount(i) != 0) {
+
+					allCarPolicies += getAllPolicyCount(i);
+
+				}
+
+				carSuccessCount += getSuccessCount(i);
+
+				carCustCount += getProductWiseCustCount(i);
+
+				System.out.println("carSuccessCount :" + carSuccessCount);
+
+			}
+
+			if (prod.equalsIgnoreCase("Health Renewal")) {
+
+				System.out.println("Entered healthSuccessCount 1");
+
+				if (getSoftCopyCount(i) != 0) {
+					healthCount = healthCount + 1;
+				}
+				// healthCount += getSoftCopyCount(i);
+				if (getStatusCount(i) != 0) {
+					healthCount1 = healthCount1 + 1;
+				}
+
+				if (getAllPolicyCount(i) != 0) {
+
+					allHealthPolicies += getAllPolicyCount(i);
+
+				}
+
+				healthSuccessCount += getSuccessCount(i);
+
+				System.out.println("healthSuccessCount 1 :" + healthSuccessCount);
+
+				healthCustCount += getProductWiseCustCount(i);
+
+			}
+
+		}
+
+		perProdCustCount1.put("Car", String.valueOf(carCustCount));
+		perProdCustCount1.put("Health", String.valueOf(healthCustCount));
+
+		AllPoliciesCount.put("Car", String.valueOf(allCarPolicies));
+		AllPoliciesCount.put("Health", String.valueOf(allHealthPolicies));
+
+		SuccessCount.put("Car", String.valueOf(carSuccessCount));
+		SuccessCount.put("Health", String.valueOf(healthSuccessCount));
+
+		SoftCopyFailCases.put("Car", String.valueOf(carCount));
+		SoftCopyFailCases.put("Health", String.valueOf(healthCount));
+
+		StatusFailCases.put("Car", String.valueOf(carCount1));
+		StatusFailCases.put("Health", String.valueOf(healthCount1));
+
+		for (String key : AllPoliciesCount.keySet()) {
+
+			System.out.println(key + " All Policies Count " + Integer.parseInt(AllPoliciesCount.get(key)));
+		}
+
+		for (String key : StatusFailCases.keySet()) {
+
+			System.out.println(key + " Success Count " + Integer.parseInt(SuccessCount.get(key)));
+		}
+
+		for (String key : SoftCopyFailCases.keySet()) {
+
+			System.out.println(key + " Soft Copy Fail Count " + Integer.parseInt(SoftCopyFailCases.get(key)));
+		}
+
+		for (String key : StatusFailCases.keySet()) {
+
+			System.out.println(key + " Status Fail Count " + Integer.parseInt(StatusFailCases.get(key)));
+		}
+
+		for (String key : perProdCustCount1.keySet()) {
+
+			System.out.println(key + " Per Prod Cust Count 1" + Integer.parseInt(perProdCustCount1.get(key)));
+		}
+
+		System.out.println("In here for Renewal cases");
+
+		ExcelUtils.SetRenewalSummarySheet(reportPath, reportSummarySheetName, perProdCustCount1, AllPoliciesCount,
+				SuccessCount, SoftCopyFailCases, StatusFailCases, carRenewalRow, healthRenewalRow);
+
+	}
+
+	// TODO
+	@Test(priority = 3)
+	public void readSearches() throws Exception {
+
+		Thread.sleep(2000);
+		HashMap<String, String> SuccessCount = new HashMap<String, String>();
+
+		ExcelUtils.SetExcelFile("C:\\eclipse\\Report.xls", "Searches");
+
+		carCount = 0;
+		healthCount = 0;
+		termCount = 0;
+		investmentCount = 0;
+
+		for (int i = 1; i <= 100; i++) {
+
+			String prod = ExcelUtils.GetCellData(i, 1);
+
+			System.out.println("Summary Sheet Loop Product :" + prod);
+
+			if (prod.contains("Car")) {
+
+				carCount = carCount + 1;
+
+			}
+
+			if (prod.contains("Health")) {
+
+				System.out.println("Entered healthSuccessCount 1");
+
+				healthCount = healthCount + 1;
+
+			}
+
+			if (prod.contains("Term")) {
+
+				System.out.println("Entered healthSuccessCount 1");
+
+				termCount = termCount + 1;
+
+			}
+
+			if (prod.contains("Investment")) {
+
+				System.out.println("Entered healthSuccessCount 1");
+
+				investmentCount = investmentCount + 1;
+
+			}
+
+		}
+
+		SuccessCount.put("Car", String.valueOf(carCount));
+		SuccessCount.put("Health", String.valueOf(healthCount));
+		SuccessCount.put("Term", String.valueOf(termCount));
+		SuccessCount.put("Investment", String.valueOf(investmentCount));
+
+		for (String key : SuccessCount.keySet()) {
+
+			System.out.println(key + " All Policies Count " + Integer.parseInt(SuccessCount.get(key)));
+		}
+
+		System.out.println("In here for Searches");
+
+		ExcelUtils.SetSearchSummarySheet(reportPath, reportSummarySheetName, SuccessCount);
+
+	}
+
+	@Test(priority = 4)
+	public void encodeReport() {
+
+		try {
+			encode(fileToEncode, encodedFilePath, IS_CHUNKED);
+		} catch (Exception e) {
+
+			e.printStackTrace();
+		}
+	}
+
+	@Test(priority = 5)
+	public void sendEmail() {
+		// String string = "";
+		try {
+
+			// Step1: Let's 1st read file from fileSystem
+			/*
+			 * InputStream crunchifyInputStream = new
+			 * FileInputStream("C:\\eclipse\\JSON.txt"); InputStreamReader
+			 * crunchifyReader = new InputStreamReader(crunchifyInputStream);
+			 * BufferedReader br = new BufferedReader(crunchifyReader); String
+			 * line; while ((line = br.readLine()) != null) { string += line +
+			 * "\n"; }
+			 * 
+			 * System.out.println("String Created :"+string);
+			 */
+
+			String Base64String = "";
+
+			InputStream crunchifyInputStream = new FileInputStream(encodedFilePath);
+			InputStreamReader crunchifyReader = new InputStreamReader(crunchifyInputStream);
+			BufferedReader br = new BufferedReader(crunchifyReader);
+			String line;
+			while ((line = br.readLine()) != null) {
+				Base64String += line;
+			}
+
+			System.out.println("String Created :" + Base64String);
+
+			Date dt = new Date();
+
+			SimpleDateFormat smdt = new SimpleDateFormat("dd.MM.yyyy");
+
+			String datee = smdt.format(dt);
+
+			System.out.println("Date : " + datee);
+
+			String jSonDataString = "{'CommunicationDetails':{'LeadID':25618644,'Conversations':[{'From':'" + emailFrom
+					+ "', 'ToReceipent':['" + emailTo1 + "','" + emailTo2 + "'], 'BccEmail':[],'CCEmail':['" + emailCC1
+					+ "','" + emailCC2 + "'], 'Body':'" + emailBody + "', 'Subject':'" + emailSubject + " " + datee
+					+ " ', 'MailAttachments': [ {'FileName': 'MyAccount_Automation_Report_" + datee
+					+ ".xls', 'AttachemntContent': '" + Base64String
+					+ "', 'AttachmentURL': '' }], 'CreatedBy':'Neeraj','UserID':124,'AutoTemplate':true}], 'CommunicationType':1} }";
+
+			JSONObject jsonObject = new JSONObject(jSonDataString);
+
+			System.out.println(jsonObject);
+
+			// Step2: Now pass JSON File Data to REST Service
+			try {
+				URL url = new URL(apiURL);
+				URLConnection connection = url.openConnection();
+				connection.setDoOutput(true);
+				connection.setRequestProperty("Content-Type", "application/json");
+				connection.setConnectTimeout(5000);
+				connection.setReadTimeout(5000);
+				OutputStreamWriter out = new OutputStreamWriter(connection.getOutputStream());
+				out.write(jsonObject.toString());
+				out.close();
+
+				BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+
+				while (in.readLine() != null) {
+				}
+				System.out.println("\n REST Service Invoked Successfully..");
+				in.close();
+			} catch (Exception e) {
+				System.out.println("\nError while calling REST Service");
+				System.out.println(e);
+			}
+
+			br.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public int getProductWiseCustCount(int i) throws Exception {
+
+		String softcopyfail = ExcelUtils.GetCellData(i, 1);
+
+		System.out.println("softcopyfaillist :" + softcopyfail);
+
+		int count1 = 0;
+		// if (softcopyfail != null && !softcopyfail.isEmpty()) {
+
+		if (softcopyfail != null && !softcopyfail.isEmpty()) {
+
+			System.out.println("Entered ProductWise Loop :");
+
+			// softcopyfail = softcopyfail.substring(21);
+
+			count1 = count1 + 1;
+
+		}
+
+		System.out.println("ProductWise :" + count1);
+		return count1;
+	}
+
+	public int getPolicyCopyCorruptCount(int i) throws Exception {
+
+		String PolicyCopyCorrupt = ExcelUtils.GetCellData(i, 6);
+
+		System.out.println("PolicyCopyCorrupt :" + PolicyCopyCorrupt);
+
+		int count1 = 0;
+		// if (softcopyfail != null && !softcopyfail.isEmpty()) {
+
+		if (!PolicyCopyCorrupt.equalsIgnoreCase("PASS")) {
+
+			System.out.println("Entered ProductWise Loop :");
+
+			// softcopyfail = softcopyfail.substring(21);
+
+			count1 = count1 + 1;
+
+		}
+
+		System.out.println("ProductWise :" + count1);
+		return count1;
+	}
+
+	public int getAllPolicyCount(int i) throws Exception {
+
+		String softcopyfail = ExcelUtils.GetCellData(i, 3);
+
+		// System.out.println("AllPolicylist :" + softcopyfail);
+
+		int count1 = 0;
+		if (softcopyfail != null && !softcopyfail.isEmpty()) {
+
+			String[] str = softcopyfail.split(",");
+
+			count1 = count1 + str.length;
+			// System.out.println("Count :" + count1);
+
+		}
+
+		return count1;
+	}
+
+	public int getSuccessCount(int i) throws Exception {
+
+		String softcopyfail = ExcelUtils.GetCellData(i, 4);
+
+		System.out.println("PAss List :" + softcopyfail);
+
+		int count1 = 0;
+		// if (softcopyfail != null && !softcopyfail.isEmpty()) {
+
+		if (softcopyfail.equalsIgnoreCase("PASS")) {
+
+			System.out.println("Entered Soft Copy Loop :");
+
+			// softcopyfail = softcopyfail.substring(21);
+
+			System.out.println("softcopyPasslist post trim :" + softcopyfail);
+
+			String[] str = softcopyfail.split(",");
+
+			count1 = count1 + str.length;
+
+		}
+
+		System.out.println("softcopyfailCount :" + count1);
+		return count1;
+	}
+
+	public int getSoftCopyCount(int i) throws Exception {
+
+		String softcopyfail = ExcelUtils.GetCellData(i, 4);
+
+		System.out.println("softcopyfaillist :" + softcopyfail);
+
+		int count1 = 0;
+		// if (softcopyfail != null && !softcopyfail.isEmpty()) {
+
+		if (softcopyfail != null && !softcopyfail.isEmpty() && !softcopyfail.equalsIgnoreCase("PASS")) {
+
+			System.out.println("Entered Soft Copy Loop :");
+
+			// softcopyfail = softcopyfail.substring(21);
+
+			System.out.println("softcopyfaillist post trim :" + softcopyfail);
+
+			String[] str = softcopyfail.split(",");
+
+			count1 = count1 + str.length;
+
+		}
+
+		System.out.println("softcopyfailCount :" + count1);
+		return count1;
+	}
+
+	public int getStatusCount(int i) throws Exception {
+
+		String softcopyfail = ExcelUtils.GetCellData(i, 5);
+
+		int count1 = 0;
+		// if (softcopyfail != null && !softcopyfail.isEmpty()) {
+
+		if (softcopyfail != null && !softcopyfail.isEmpty() && !softcopyfail.equalsIgnoreCase("PASS")) {
+
+			String[] str = softcopyfail.split(",");
+
+			count1 = count1 + str.length;
+
+		}
+
+		return count1;
+	}
+
+	private void encode(String sourceFile, String targetFile, boolean isChunked) throws Exception {
+
+		byte[] base64EncodedData = Base64.encodeBase64(loadFileAsBytesArray(sourceFile), isChunked);
+
+		writeByteArraysToFile(targetFile, base64EncodedData);
+	}
+
+	public void decode(String sourceFile, String targetFile) throws Exception {
+
+		byte[] decodedBytes = Base64.decodeBase64(loadFileAsBytesArray(sourceFile));
+
+		writeByteArraysToFile(targetFile, decodedBytes);
+	}
+
+	/**
+	 * This method loads a file from file system and returns the byte array of
+	 * the content.
+	 *
+	 * @param fileName
+	 * @return
+	 * @throws Exception
+	 */
+	public byte[] loadFileAsBytesArray(String fileName) throws Exception {
+
+		File file = new File(fileName);
+		int length = (int) file.length();
+		BufferedInputStream reader = new BufferedInputStream(new FileInputStream(file));
+		byte[] bytes = new byte[length];
+		reader.read(bytes, 0, length);
+		reader.close();
+		return bytes;
+
+	}
+
+	/**
+	 * This method writes byte array content into a file.
+	 *
+	 * @param fileName
+	 * @param content
+	 * @throws IOException
+	 */
+	public void writeByteArraysToFile(String fileName, byte[] content) throws IOException {
+
+		File file = new File(fileName);
+		BufferedOutputStream writer = new BufferedOutputStream(new FileOutputStream(file));
+		writer.write(content);
+		writer.flush();
+		writer.close();
+
+	}
+
+}
