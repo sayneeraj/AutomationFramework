@@ -1,0 +1,59 @@
+package Utilities;
+
+import java.io.UnsupportedEncodingException;
+import Utilities.EncryptionUtil;
+
+import java.net.URLDecoder;
+import Utilities.AESCipher;
+import org.apache.commons.codec.binary.Base64;
+
+
+public class EncryptionUtil {
+
+	//EncryptionUtil eu = new EncryptionUtil();
+
+	AESCipher aes = new AESCipher();
+
+	public   String decryptAES128InController(String val) throws Exception {
+
+		return aes.decrypt(val);
+
+	}
+
+	public   String decryptAES128Filter(String val) throws Exception {
+
+		try {
+
+			return aes.decrypt(URLDecoder.decode(val, "UTF-8"));
+
+		} catch (UnsupportedEncodingException e) {
+
+			System.out.println("error in decrypt :: " + e.getMessage());
+
+		}
+
+		return null;
+
+	}
+
+	public   String decodeBase64String(String val) {
+
+		byte[] decodedString = Base64.decodeBase64(val.getBytes());
+
+		return new String(decodedString);
+
+	}
+
+	public   String encodeStringToBase64(String val) {
+
+		return new String(Base64.encodeBase64(val.getBytes()));
+
+	}
+
+	public   void main(String[] args) throws Exception {
+
+		System.out.println(decryptAES128InController("wsK3n7uIrucb8%2BD7fBMLjA%3D%3D"));
+
+	}
+
+}
