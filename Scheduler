@@ -1,0 +1,103 @@
+package MyAcc;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import org.testng.TestListenerAdapter;
+import org.testng.TestNG;
+import org.testng.xml.XmlClass;
+import org.testng.xml.XmlSuite;
+import org.testng.xml.XmlTest;
+
+public class Scheduler extends TimerTask {
+
+	@Override
+
+	public void run() {
+
+		System.out.println("Start time:" + new Date());
+
+		summonWrapper();
+
+		System.out.println("End time:" + new Date());
+
+	}
+
+
+	@SuppressWarnings("deprecation")
+	private void summonWrapper() {
+
+		try {
+
+			TestListenerAdapter tla = new TestListenerAdapter();
+			TestNG tng = new TestNG();
+			tng.addListener(tla);
+
+			XmlSuite suite = new XmlSuite();
+
+			suite.setName("Suite1");
+
+			XmlTest test = new XmlTest(suite);
+
+			test.setName("Test1");
+
+			List<XmlClass> classes = new ArrayList<XmlClass>();
+
+			classes.add(new XmlClass("MyAcc.Wrapper"));
+
+			test.setXmlClasses(classes);
+
+			List<XmlTest> myTests = new ArrayList<XmlTest>();
+			myTests.add(test);
+
+			suite.setTests(myTests);
+
+			List<XmlSuite> mySuites = new ArrayList<XmlSuite>();
+			mySuites.add(suite);
+
+			tng.setXmlSuites(mySuites);
+
+			System.out.println("Running set");
+
+			tng.run();
+
+			System.out.println("Running set 2");
+
+		} catch (Exception e) {
+
+			System.out.println("Exception occured 2" + e);
+
+			e.printStackTrace();
+
+		}
+
+	}
+
+	public static void main(String args[]) {
+
+		TimerTask timerTask = new Scheduler();
+
+		// running timer task as daemon thread
+
+		Timer timer = new Timer(true);
+
+		timer.scheduleAtFixedRate(timerTask, 0, 79200000);
+
+		System.out.println("TimerTask begins! :" + new Date());
+
+		try {
+
+			Thread.sleep(900000000);
+
+		} catch (InterruptedException e) {
+
+			e.printStackTrace();
+
+		}
+
+	}
+
+}
