@@ -1,0 +1,204 @@
+package Utilities;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+
+import java.security.InvalidAlgorithmParameterException;
+
+import java.security.InvalidKeyException;
+
+import java.security.NoSuchAlgorithmException;
+
+import javax.crypto.BadPaddingException;
+
+import javax.crypto.Cipher;
+
+import javax.crypto.IllegalBlockSizeException;
+
+import javax.crypto.NoSuchPaddingException;
+
+import javax.crypto.spec.IvParameterSpec;
+
+import javax.crypto.spec.SecretKeySpec;
+
+import org.apache.commons.codec.binary.Base64;
+
+import com.google.common.io.BaseEncoding;
+
+public class AESCipher {
+
+	// EncryptionUtil eu = new EncryptionUtil();
+
+	// AESCipher aes = new AESCipher();
+
+	private String keyString = decodeBase64String("PSVJQRk9QTEpNVU1DWUZCRVFGV1VVT0ZOV1RRU1NaWQ=");
+
+	private String ivString = decodeBase64String("WVdsRkxWRVpaVUZOYVdsaA==");
+
+	private final String ALGORITHM_AES256 = "AES/CBC/PKCS5Padding";
+
+	private SecretKeySpec secretKeySpec;
+
+	private Cipher cipher;
+
+	private IvParameterSpec iv;
+
+	public String[] main1(String CustomerID, String AgentID) throws UnsupportedEncodingException, Exception {
+
+		//String messageToEncrypt = CustomerID;
+
+		String encryptedCustomerID = encrypt(CustomerID);
+		String encryptedAgentID = encrypt(AgentID);
+
+		//String decryptedMessage = decrypt(encryptedMessage);
+
+		/*System.out.println("Original Message: {" + messageToEncrypt + "}, Encrypted Message: {" + encryptedMessage
+				+ "}, Decrypted Message: {"
+
+				+ decryptedMessage + "}"); */
+
+		System.out.println("URL encoded:- " + URLEncoder.encode(encryptedCustomerID, "UTF-8"));
+
+		String[] EncodedValues = new String[2];
+		
+		EncodedValues[0] = URLEncoder.encode(encryptedCustomerID, "UTF-8");
+		EncodedValues[1] = URLEncoder.encode(encryptedAgentID, "UTF-8");
+
+		return EncodedValues;
+
+	}
+
+	private void setIvPair(byte[] key, byte[] iv) throws Exception {
+
+		try {
+
+			secretKeySpec = new SecretKeySpec(key, "AES");
+
+			this.iv = new IvParameterSpec(iv);
+
+			cipher = Cipher.getInstance(ALGORITHM_AES256);
+
+		} catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+
+			// log.debug("Unable to set key and iv pair :: " + e.getMessage());
+
+			throw new Exception();
+
+		}
+
+	}
+
+	private Cipher getCipher(int encryptMode) throws InvalidKeyException, InvalidAlgorithmParameterException {
+
+		cipher.init(encryptMode, getSecretKeySpec(), iv);
+
+		return cipher;
+
+	}
+
+	private SecretKeySpec getSecretKeySpec() {
+
+		return secretKeySpec;
+
+	}
+
+	public String encrypt(String message) throws Exception {
+
+		try {
+
+			setIvPair(keyString.getBytes("UTF-8"), ivString.getBytes("UTF-8"));
+
+			Cipher cipher = getCipher(Cipher.ENCRYPT_MODE);
+
+			byte[] encryptedTextBytes = cipher.doFinal(message.getBytes("UTF-8"));
+
+			return BaseEncoding.base64().encode(encryptedTextBytes);
+
+		} catch (IllegalBlockSizeException | BadPaddingException | UnsupportedEncodingException | InvalidKeyException
+				| InvalidAlgorithmParameterException e) {
+
+			// log.debug("Unable to encrypt message :: " + e.getMessage());
+
+			throw new Exception(e.getMessage());
+
+		}
+
+	}
+
+	public String decrypt(String message) throws Exception {
+
+		try {
+
+			if (message != null && message.matches("^[A-Za-z0-9-\\+]*\\s[A-Za-z0-9-\\+]*==$")) {
+
+				message = message.replaceAll(" ", "+");
+
+				throw new Exception("'" + message + "' must be URL encoded.");
+
+			}
+
+			setIvPair(keyString.getBytes("UTF-8"), ivString.getBytes("UTF-8"));
+
+			Cipher cipher = getCipher(Cipher.DECRYPT_MODE);
+
+			byte[] encryptedTextBytes = BaseEncoding.base64().decode(message);
+
+			byte[] decryptedTextBytes = cipher.doFinal(encryptedTextBytes);
+
+			return new String(decryptedTextBytes);
+
+		} catch (IllegalBlockSizeException | BadPaddingException | InvalidKeyException
+				| InvalidAlgorithmParameterException | UnsupportedEncodingException | IllegalArgumentException e) {
+
+			// log.debug("Unable to decrypt message :: " + e.getMessage());
+
+			throw new Exception(message);
+
+		}
+
+	}
+
+	public String decryptAES128InController(String val) throws Exception {
+
+		return decrypt(val);
+
+	}
+
+	public String decryptAES128Filter(String val) throws Exception {
+
+		try {
+
+			return decrypt(URLDecoder.decode(val, "UTF-8"));
+
+		} catch (UnsupportedEncodingException e) {
+
+			System.out.println("error in decrypt :: " + e.getMessage());
+
+		}
+
+		return null;
+
+	}
+
+	public String decodeBase64String(String val) {
+
+		byte[] decodedString = Base64.decodeBase64(val.getBytes());
+
+		return new String(decodedString);
+
+	}
+
+	public String encodeStringToBase64(String val) {
+
+		return new String(Base64.encodeBase64(val.getBytes()));
+
+	}
+
+	public void main(String[] args) throws Exception {
+
+		System.out.println(decryptAES128InController("wsK3n7uIrucb8%2BD7fBMLjA%3D%3D"));
+
+	}
+
+}

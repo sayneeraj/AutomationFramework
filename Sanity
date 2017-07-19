@@ -1,0 +1,719 @@
+package MyAcc;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import org.junit.Assert;
+import org.openqa.selenium.By;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.TimeoutException;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.annotations.AfterTest;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Parameters;
+import org.testng.annotations.Test;
+
+import com.google.common.base.Joiner;
+
+import POM_MYACC.MyPolicies;
+import POM_MYACC.MyVehicles;
+import POM_MYACC.MySearches;
+import POM_MYACC.GetHelp;
+import Utilities.ExcelUtils;
+import Utilities.AESCipher;
+
+public class MA_Sanity {
+
+	WebDriver d = new ChromeDriver();
+
+	String excelPath = "C:\\eclipse\\TestData.xls";
+	String loginURL = "http://caccount.policybazaar.com";
+	String loginMobile = null;
+	String loginPassword = null;
+	String resultSheetName = "Result";
+	String loginSheetName = "LogIn";
+	String searchProduct1 = null;
+	String reportPath = "C:\\eclipse\\Report.xls";
+	String reportSheetName = "Report";
+	String vehicles = null;
+
+	String myAccountURL1 = "http://caccount.policybazaar.com/Login/Admin?custId=";
+	String myAccountURL2 = "&agentId=";
+	String myAccountURL3 = "URL3";
+
+	ArrayList<String> bookingsWithoutStatus = new ArrayList<String>();
+	ArrayList<String> rogueBookings = new ArrayList<String>();
+	ArrayList<String> vehiclesNames = new ArrayList<String>();
+	ArrayList<String> allBookings = new ArrayList<String>();
+	ArrayList<String> corruptPolicyCopy = new ArrayList<String>();
+
+	long customerMobile = 0;
+	String productName = null;
+	String customerID = null;
+	String notif1 = null;
+	String renewNowURL = null;
+	String bookingsNoStatus = null;
+	String rogBookings = null;
+	String allCustBookings = null;
+	String currentProductBookings = null;
+	String badPolicycopy = null;
+
+	int perProductCustCount = 0;
+	// int cellMergeCounter = 0;
+
+	// Cell Numbers for the fields in Final Report - So that if there is any
+	// shuffling of the Result Sheet columns, we can simply change the cell
+	// number here and all will be taken care of by the program
+
+	int cell2 = 2;
+	int cell3 = 3;
+
+	int mobileCell = 1;
+	// Sheet 1 My Policies
+	String myPoliciesSheetName = "Policies & Details";
+	int productCell = 1;
+	int policiesMobileCell = 2;
+	int currentProductBookingsCell = 3;
+	int rogueBookingsCell = 4;
+	int bookingsWithoutStatusCell = 5;
+	int bookingDetailsCell = 7;
+	int allBookingsCell = 8;
+	int badPolicycopyCell = 6;
+
+	// Sheet 2 My Searches
+	String mySearchesSheetName = "Searches";
+	int searchedProductCell = 1;
+
+	// Sheet 3 My Vehicles
+	String myVehiclesSheetName = "Vehicles";
+	int vehicleCell = 1;
+
+	// Sheet 4 My Notifications
+	String myNotificationsSheetName = "Notifications";
+	int notificationCell = 1;
+
+	// Sheet 5 My Notifications
+	String docsUploadSheetName = "Upload Docs";
+	int docsUploadedCell = 1;
+	int docsVisibleCell = 2;
+
+	// Sheet 6 Others
+	String otherDetailsSheetName = "More Details";
+	int getHelpCell = 1;
+	int loginCell = 2;
+	int logoutCell = 3;
+
+	// Sheet 7 Report Summary
+	String reportSummarySheetName = "Report Summary";
+
+	// Cell Numbers End.
+
+	HashMap<String, String> testResults = new HashMap<String, String>();
+
+	WebDriverWait wait = new WebDriverWait(d, 5);
+
+	@Parameters({ "product", "customer", "mobile" })
+	@BeforeTest
+	public void GetLoginData(String product, String customer, String mobile) throws Exception {
+
+		// LogIn Sheet
+
+		// ExcelUtils.SetExcelFile(excelPath, loginSheetName);
+		loginMobile = mobile;// Long.parseLong(ExcelUtils.GetCellData(1, 0));
+		System.out.println("Mobile number Picked : " + loginMobile);
+		// loginPassword = ExcelUtils.GetCellData(1, 1);
+		customerID = customer;
+
+		productName = product;
+		System.out.println("ProdNameSupplied :" + productName);
+
+		// ExcelUtils.CloseFile();
+
+	}
+
+	@Test(priority = 1)
+	public void LogInAcc() throws InterruptedException {
+
+		try {
+
+			// customerMobile = mobile;
+
+			d.manage().deleteAllCookies();
+
+			Thread.sleep(1000);
+
+			AESCipher ae = new AESCipher();
+
+			String[] result = ae.main1(customerID, "2471");
+
+			System.out.println(result[0] + " ******&&******" + result[1]);
+
+			String GeneratedURL = myAccountURL1 + result[0] + myAccountURL2 + result[1] + myAccountURL3;
+
+			System.out.println(result[0] + " ******&&******" + result[1]);
+
+			System.out.println("Generated URL " + GeneratedURL);
+
+			Thread.sleep(2000);
+
+			d.navigate().to(GeneratedURL);
+
+			/*
+			 * wait.until(ExpectedConditions.visibilityOf(LogIn_Page.MobNumber(d
+			 * ))).sendKeys(String.valueOf(loginMobile));
+			 * 
+			 * WebElement proceedButton = LogIn_Page.ProceedButton(d); // Get
+			 * the // proceed // button // link, // so that // the // same line
+			 * // is // not // repeated.
+			 * 
+			 * proceedButton.click();
+			 * 
+			 * Thread.sleep(1000);
+			 * 
+			 * WebElement passwordField =
+			 * wait.until(ExpectedConditions.visibilityOf(LogIn_Page.Password(d)
+			 * ));
+			 * 
+			 * passwordField.sendKeys(loginPassword);
+			 * 
+			 * proceedButton.click();
+			 * 
+			 * Thread.sleep(3000);
+			 * 
+			 */
+			testResults.put(String.valueOf(loginCell), "Pass");
+
+		} catch (Exception E) {
+			System.out.println("Login Failed");
+			testResults.put(String.valueOf(loginCell), "Fail");
+			Assert.assertTrue(false);
+		}
+	}
+
+	@Test(priority = 2)
+	public void GetAllCustBookingID() throws InterruptedException {
+
+		d.navigate().refresh();
+
+		try {
+
+			Thread.sleep(3000);
+			List<WebElement> policyList1 = null;
+
+			String noPolicies = null;
+
+			try {
+				noPolicies = MyPolicies.NoPolicies(d).getText().trim();
+			} catch (NoSuchElementException E) {
+				System.out.println("Bookings Found!!" + E);
+			}
+
+			if (noPolicies.contains("No Policy")) {
+				System.out.println("No Bookings Exist for Cust");
+			} else {
+
+				try {
+
+					policyList1 = wait.until(ExpectedConditions.visibilityOfAllElements(MyPolicies.MyPolicyCount(d)));
+
+					System.out.println("Policy List count " + policyList1.size());
+
+				} catch (Exception E) {
+					System.out.println("No Bookings Found 4" + E);
+				}
+
+				if (policyList1.isEmpty()) {
+
+					System.out.println("No bookings exist for the Customer");
+
+					testResults.put(String.valueOf(rogueBookingsCell), "Pass");
+					testResults.put(String.valueOf(bookingsWithoutStatusCell), "Pass");
+
+				} else {
+
+					int policyCount1 = policyList1.size();
+
+					Thread.sleep(2000);
+
+					ArrayList<String> currProductBookings = new ArrayList<String>();
+
+					String[] bookings = new String[policyCount1];
+
+					for (int i = 1; i <= policyCount1; i++) {
+
+						String getBookingID = null;
+						String getBookingStatus = null;
+						String getCurrentProduct = null;
+						try {
+							getBookingID = d
+									.findElement(By.xpath(
+											".//*[@id='PBPolicy']/div[" + i + "]/div[5]/em"))
+									.getText();
+
+							getBookingStatus = d
+									.findElement(By.xpath(
+											".//*[@id='PBPolicy']/div[" + i + "]/div[5]/span"))
+									.getText();
+
+							getCurrentProduct = d
+									.findElement(By.xpath(".//*[@id='PBPolicy']/div[" + i
+											+ "]/div[4]/ul/li[3]/span"))
+									.getText();
+
+						} catch (NoSuchElementException E) {
+							System.out.println("No Such Element - All Policies" + E);
+
+						} catch (TimeoutException E) {
+							System.out.println("No Such Element - All Policies" + E);
+
+						}
+						System.out.println(" ");
+						System.out.println("Booking Status :" + getBookingStatus);
+
+						getBookingStatus = getBookingStatus.trim();
+
+						System.out.println("Trimmed Booking Status :" + getBookingStatus);
+
+						getCurrentProduct = getCurrentProduct.trim();
+
+						System.out.println("Trimmed Booking Product :" + getCurrentProduct);
+
+						// System.out.println("GetCurrentProduct :" +
+						// getCurrentProduct);
+
+						getBookingID.trim();
+
+						System.out.println("Trimmed getBookingID :" + getBookingID);
+
+						String bookingID1 = getBookingID.substring(12);
+
+						System.out.println("bookingID1 :" + bookingID1);
+
+						bookingID1.trim();
+
+						System.out.println("bookingID1 :" + bookingID1);
+
+						allBookings.add(bookingID1);
+
+						System.out.println("Added Booking to All Bookings :");
+
+						if (getBookingStatus.isEmpty()) {
+
+							bookingsWithoutStatus.add(bookingID1);
+							System.out.println(
+									"Booking Status is Null, so added the booking to Arraylist - bookingswithoutstatus");
+						}
+
+						// Getting Current Product Bookings and Rogue Bookings
+						// only if the current product is the supplied product
+
+						System.out.println("Going to get Current Product from :" + getCurrentProduct);
+
+						String getCurrentProduct1 = getCurrentProduct.substring(0, (getCurrentProduct.length() - 9));
+
+						System.out.println("Got Current Product :" + getCurrentProduct1);
+
+						getCurrentProduct1 = getCurrentProduct1.trim();
+
+						System.out.println("GetCurrentProduct :" + getCurrentProduct1);
+
+						if (productName.contains(getCurrentProduct1) || getCurrentProduct.contains(productName)
+								|| getCurrentProduct == productName) {
+
+							System.out.println("Entered Curr Prod");
+							System.out.println("Entered Curr Prod Booking :" + bookingID1);
+
+							currProductBookings.add(bookingID1);
+
+							if ((getCurrentProduct1.equalsIgnoreCase("Health")
+									|| getCurrentProduct1.equalsIgnoreCase("Car"))
+									&& getBookingStatus.equalsIgnoreCase("Policy Issued")) {
+
+								System.out.println("Entered 2");
+
+								WebElement policyCopy = null;
+								try {
+									policyCopy = d
+											.findElement(By.xpath(".//*[@id='PBPolicy']/div["
+													+ i + "]/div[5]/span/a"));
+								} catch (NoSuchElementException E) {
+									System.out.println("No Such Element - All Policies" + E);
+
+								}
+								if (policyCopy == null) {
+
+									System.out.println("Policy Soft Copy not available for Booking - " + getBookingID);
+
+									rogueBookings.add(bookingID1);
+
+								} else {
+									// Getting Policy Copy File Size. If Size is
+									// < 10kb, the file is considered corrupted.
+
+									System.out.println("Policy softCopy Available");
+
+									String policyLink = policyCopy.getAttribute("href");
+
+									System.out.println("policyLink : " + policyLink);
+
+									try {
+
+										URL copyURL = new URL(policyLink);
+
+										long fileSize = getFileSize(copyURL);
+
+										System.out.println("File Size in Bytes : " + fileSize);
+
+										long fileSizeKB = fileSize / 1024;
+
+										System.out.println("File Size in kb : " + fileSizeKB + "kb");
+										// TODO
+										if (fileSizeKB < 10) {
+
+											System.out.println("Policy Copy Corrupt for :" + bookingID1);
+
+											corruptPolicyCopy.add(bookingID1);
+										}
+
+									} catch (MalformedURLException e) {
+										System.out.println("Exception in Malformed URL");
+									}
+
+								}
+
+							}
+							System.out.println("All Cust Bookings String 1:");
+						}
+
+						getBookingID.trim();
+
+						String bookingID = getBookingID.substring(12);
+
+						bookingID.trim();
+
+						bookings[i - 1] = bookingID;
+
+						System.out.println("Booking ID: " + bookings[i - 1]);
+					} // Top Loop ends here
+
+					allCustBookings = Joiner.on(",").join(allBookings);
+					System.out.println("All Cust Bookings String 2:");
+
+					currentProductBookings = Joiner.on(",").join(currProductBookings);
+
+					System.out.println("All Cust Bookings String :" + allCustBookings);
+					System.out.println("Current Prod Bookings String :" + currentProductBookings);
+					rogBookings = Joiner.on(",").join(rogueBookings);
+					badPolicycopy = Joiner.on(",").join(corruptPolicyCopy);
+
+					bookingsNoStatus = Joiner.on(",").join(bookingsWithoutStatus);
+					// return bookings;
+
+					if (!(rogueBookings == null) && !rogueBookings.isEmpty()) {
+						for (int j = 0; j < rogueBookings.size(); j++) {
+							System.out.println("Rogue Bookings: " + rogueBookings.get(j));
+						}
+					}
+					
+					if (!(corruptPolicyCopy == null) && !corruptPolicyCopy.isEmpty()) {
+						for (int j = 0; j < corruptPolicyCopy.size(); j++) {
+							System.out.println("corruptPolicyCopy Bookings: " + corruptPolicyCopy.get(j));
+						}
+					}
+
+					if (!bookingsWithoutStatus.isEmpty() && !rogBookings.isEmpty()) {
+						System.out.println("Bookings Without Status - Throwing Exception");
+						throw new NumberFormatException();
+					}
+
+					if (!bookingsWithoutStatus.isEmpty()) {
+						System.out.println("Bookings Without Status - Throwing Exception");
+						throw new NoSuchFieldException();
+					}
+					if (!rogBookings.isEmpty()) {
+						System.out.println("rogBookings - Throwing Exception");
+						throw new ArithmeticException();
+					}
+
+				}
+			}
+
+			testResults.put(String.valueOf(rogueBookingsCell), "Pass");
+			testResults.put(String.valueOf(bookingsWithoutStatusCell), "Pass");
+
+		} catch (NoSuchFieldException E) {
+			System.out.println(E);
+			System.out.println("Entered Exception bookingsWithoutStatusCell- Going to input value in testResults");
+			testResults.put(String.valueOf(bookingsWithoutStatusCell), "Fail");
+			// Assert.assertTrue(false);
+		} catch (ArithmeticException E) {
+			System.out.println(E);
+			System.out.println("Entered Exception rogueBookingsCell- Going to input value in testResults");
+			testResults.put(String.valueOf(rogueBookingsCell), "Fail");
+		} catch (NumberFormatException E) {
+			System.out.println(E);
+			System.out.println("Entered Exception bookingsWithoutStatusCell- Going to input value in testResults");
+			testResults.put(String.valueOf(bookingsWithoutStatusCell), "Fail");
+			testResults.put(String.valueOf(rogueBookingsCell), "Fail");
+		}
+
+		catch (Exception E) {
+			Assert.assertTrue(false);
+		}
+	}
+
+	@Test(priority = 3)
+	public void BookingDetailsDocUpload() throws InterruptedException {
+
+		try {
+
+			System.out.println("Entered custBookingID Null");
+			wait.until(ExpectedConditions.presenceOfElementLocated(
+					By.xpath(".//*[@id='PBPolicy']/div[1]/div[6]/div[2]/span/a"))).click();
+
+			testResults.put(String.valueOf(bookingDetailsCell), "Pass");
+
+		} catch (Exception E) {
+			testResults.put(String.valueOf(bookingDetailsCell), "Fail");
+			Assert.assertTrue(false);
+		}
+
+		d.navigate().back();
+	}
+
+	@Test(priority = 4)
+	public void MySearchesLink() throws InterruptedException, NoSuchElementException {
+
+		try {
+			wait.until(ExpectedConditions.visibilityOf(MySearches.MySearchesLink(d))).click();
+
+			WebElement searchProduct = wait.until(ExpectedConditions
+					.presenceOfElementLocated(By.xpath(".//div[@class='data_container']/div/div[1]/div/div/em")));
+
+			searchProduct1 = searchProduct.getText();
+
+			System.out.println("");
+			System.out.println("Customer's latest search was for: " + searchProduct1);
+
+			Thread.sleep(2000);
+
+			testResults.put(String.valueOf(searchedProductCell), "Pass");
+
+		} catch (NoSuchElementException E) {
+			System.out.println("No Such Element - Searches" + E);
+			testResults.put(String.valueOf(searchedProductCell), "Pass");
+		}
+
+		catch (Exception e) {
+			testResults.put(String.valueOf(searchedProductCell), "Fail");
+			System.out.println(e);
+			Assert.assertTrue(false);
+
+		}
+
+		// d.navigate().back();
+	}
+
+	@Test(priority = 5)
+	public void MyVehiclesLink() throws InterruptedException, NoSuchElementException {
+
+		try {
+
+			System.out.println("Getting Vehicle Details");
+
+			wait.until(ExpectedConditions.visibilityOf(MyVehicles.MyVehiclesLink(d))).click();
+
+			Thread.sleep(2000);
+
+			HashMap<String, String> Elements = new HashMap<String, String>();
+
+			Elements = MyVehicles.GetVehicleFields(d);
+
+			int vehicleCount = MyVehicles.GetVehicleCount(d).size();
+
+			System.out.println("vehicleCount :" + vehicleCount);
+
+			for (int i = 0; i < vehicleCount; i++) {
+				System.out.println("");
+				try {
+					vehiclesNames
+							.add(wait
+									.until(ExpectedConditions.presenceOfElementLocated(
+											By.xpath((Elements.get("VName1") + (i + 2) + Elements.get("VName2")))))
+									.getText());
+				} catch (NoSuchElementException E) {
+					System.out.println("Vehicles Inside Exception 1" + E);
+				}
+				System.out.println("Vehicle Name: " + vehiclesNames.get(i));
+
+			}
+
+			vehicles = Joiner.on(",").join(vehiclesNames);
+
+			System.out.println("Vehicles List :" + vehicles);
+
+			testResults.put(String.valueOf(vehicleCell), "Pass");
+
+		} catch (Exception E) {
+			testResults.put(String.valueOf(vehicleCell), "Fail");
+			System.out.println("Vehicles Main Exception" + E);
+			Assert.assertTrue(false);
+		}
+	}
+
+	@Test(priority = 6)
+	public void GetHelpLink() throws InterruptedException {
+		try {
+			wait.until(ExpectedConditions.visibilityOf(GetHelp.GetHelpLink(d))).click();
+
+			Thread.sleep(1000);
+			testResults.put(String.valueOf(getHelpCell), "Pass");
+
+		} catch (Exception E) {
+			testResults.put(String.valueOf(getHelpCell), "Fail");
+			Assert.assertTrue(false);
+		}
+
+	}
+
+	@Test(priority = 7)
+	public void ReadNotification() throws Exception {
+
+		try {
+			Thread.sleep(2000);
+			// wait.until(ExpectedConditions.elementToBeClickable(By.xpath(".//*[@id='divnotification']"))).click();
+
+			d.findElement(By.xpath(".//*[@id='divnotification']")).click();
+
+			Thread.sleep(2000);
+			boolean notifications = false;
+			try {
+				// wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(By.xpath(".//ul[@class='notification_data']/li")));
+
+				d.findElement(By.xpath(".//ul[@class='notification_data']/li"));
+				notifications = true;
+
+			} catch (NoSuchElementException E) {
+				System.out.println("No Notification Present");
+
+			}
+
+			if (notifications) {
+				notif1 = d.findElement(By.xpath(".//ul[@class='notification_data']/li[1]")).getText();
+
+				/*
+				 * Thread.sleep(2000); d.findElement(By.xpath(
+				 * ".//ul[@class='notification_data']/li[1]/a")).click();
+				 * 
+				 * String mainWinHandle = d.getWindowHandle();
+				 * Thread.sleep(2000); for (String winHandle :
+				 * d.getWindowHandles()) { System.out.println("Switching tabs");
+				 * d.switchTo().window(winHandle); renewNowURL =
+				 * d.getCurrentUrl(); }
+				 * 
+				 * System.out.println("Renew Now URL :" + renewNowURL);
+				 * Thread.sleep(2000); d.switchTo().window(mainWinHandle);
+				 */
+
+			} else {
+				notif1 = null;
+			}
+			System.out.println("");
+			System.out.println("Customer Notification 1: " + notif1);
+
+			System.out.println("");
+
+			Thread.sleep(1000);
+
+			// TODO uncomment if Click On Renewal button in Notification feature
+			// is not used
+			d.findElement(By.xpath(".//*[@id='divnotification']")).click();
+
+			testResults.put(String.valueOf(notificationCell), "Pass");
+
+		} catch (Exception E) {
+			System.out.println("Notification Fail " + E);
+			testResults.put(String.valueOf(notificationCell), "Fail");
+			// Assert.assertTrue(false);
+		}
+	}
+
+	@Test(priority = 8)
+	public void LogOut() throws InterruptedException {
+		try {
+			Thread.sleep(3000);
+
+			Actions action = new Actions(d);
+
+			WebElement hiCustButton = MyPolicies.CustomerMenuHoverButton(d);
+
+			action.moveToElement(hiCustButton).build().perform();
+
+			WebElement logOutButton = wait.until(ExpectedConditions.elementToBeClickable(MyPolicies.LogOutButton(d)));
+
+			action.moveToElement(logOutButton);
+
+			action.click().build().perform();
+			testResults.put(String.valueOf(logoutCell), "Pass");
+
+		} catch (Exception E) {
+			testResults.put(String.valueOf(logoutCell), "Fail");
+			Assert.assertTrue(false);
+		}
+
+		Thread.sleep(2000);
+
+		d.close();
+	}
+
+	@Parameters({ "resultCounter" })
+	@AfterTest
+	private void WriteData(int resultCounter) {
+
+		for (String key : testResults.keySet()) {
+			System.out.println(key + " - " + testResults.get(key));
+		}
+		// int resultCounter = 1;
+		System.out.println("Write Counter : " + resultCounter);
+
+		System.out.println("Write Mobile : " + loginMobile);
+
+		try {
+
+			ExcelUtils.GenerateReport2(reportPath, myPoliciesSheetName, mySearchesSheetName, myVehiclesSheetName,
+					myNotificationsSheetName, docsUploadSheetName, otherDetailsSheetName, reportSummarySheetName,
+					productName, productCell, currentProductBookings, currentProductBookingsCell, allCustBookings,
+					allBookingsCell, vehicles, vehicleCell, bookingsNoStatus, bookingsWithoutStatusCell, rogBookings,
+					rogueBookingsCell, badPolicycopy, badPolicycopyCell, loginMobile, policiesMobileCell, mobileCell, searchProduct1, searchedProductCell,
+					notif1, notificationCell, resultCounter);
+
+		} catch (Exception e) {
+			System.out.println("Entered Write Exception -MA_Sanity");
+			e.printStackTrace();
+		}
+	}
+
+	private long getFileSize(URL url) {
+		HttpURLConnection conn = null;
+		try {
+			conn = (HttpURLConnection) url.openConnection();
+			conn.setRequestMethod("GET");
+			conn.getInputStream();
+			return conn.getContentLength();
+		} catch (IOException e) {
+			return -1;
+		} finally {
+			conn.disconnect();
+		}
+	}
+
+}
