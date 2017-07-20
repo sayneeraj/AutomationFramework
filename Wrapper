@@ -42,6 +42,12 @@ public class Wrapper {
 	String ProductWiseSearchQuery = "SELECT  LD.CustomerID,LD.MobileNo FROM  PBCROMA.CRM.Leaddetails LD (NOLOCK) INNER JOIN PBCROMA.CRM.LeadStatus AS LS (NOLOCK) ON LS.LeadID=LD.LeadID AND IsLastStatus=1 AND LS.StatusID < 13 LEFT JOIN PBCroma.CRM.InvalidMobileNumbers IMN  WITH (NOLOCK)  ON LD.MobileNo=IMN.MobileNo WHERE  LD.CreatedON>GETDATE()-1 AND IMN.id IS NULL AND LD.LeadSource IN ('PB','PBMobile','PBMOBILEAPP','Inbound') AND LD.ProductID =";
 	String ProductWiseRenewalQuery = "select DISTINCT top 12 prd.ProductName,cldt.CustomerID,ld.MobileNo,cldt.LoginDate  FROM [customer].[CustomerLoginDetails] cldt (NOLOCK) inner join PBCROMA.CRM.Leaddetails ld (nolock) on cldt.CustomerId=ld.CustomerID inner join PBCROMA.CRM.BookingDetails bd (nolock) on bd.LEADID=ld.LeadID inner join PBCROMA.CRM.AdditionalBookingDetails AS AB (NOLOCK) ON AB.LeadID=BD.LEADID  AND ISNULL(AB.InCreditPendingPool,0)!=1 inner join PBCROMA.CRM.FulfillmentDetails AS FFD (NOLOCK) ON AB.LeadID=FFD.LeadId AND ISNULL(FFD.BlockAutoCommunication,0)!=1 inner join PBCROMA.dbo.Products prd (nolock) on ld.ProductID=prd.ID inner join PBCROMA.CRM.LeadStatus AS LS (NOLOCK) ON BD.LEADID=LS.LeadID AND LS.StatusID>=13 AND LS.SubStatusID>=319 AND LS.StatusID NOT IN (50,14,16,18,20,22,23,25,27,29,31,33) AND LS.SubStatusID NOT IN (94,24) LEFT JOIN PBCroma.CRM.InvalidMobileNumbers IMN  WITH (NOLOCK) ON LD.MobileNo=IMN.MobileNo where cldt.LoginDate > GETDATE()-1 AND IMN.id IS NULL and ld.MobileNo not in ('9716743933','9386125574','7760410144','7838770189','9908991116') and ld.ProductID =";
 	String RenewalQueryPart2 = "and LeadSource='Renewal' order by cldt.LoginDate desc";
+	String DB_username = "UATUser";
+	String DB_password = "UAT123User";
+	String DB_Path = "jdbc:sqlserver://10.0.10.43:1433;DatabaseName=ProductDB";
+	String LiveDB_Path = "jdbc:sqlserver://10.209.65.242:1433;DatabaseName=ProductDB";
+	private String Liveusename = "CoreSys";
+	private String Livepassword = "PB#123#C@re";
 
 	private String renewalCheck = " and LeadSource='Renewal'";
 
@@ -89,16 +95,16 @@ public class Wrapper {
 	int carRenewalRow = 5;
 	int healthRenewalRow = 6;
 
-	String emailFrom = "CustomerAccount@policybazaar.com";
-	String emailTo1 = "Email1";
-	String emailTo2 = "Email2";
+	String emailFrom = "MyAccount@policybazaar.com";
+	String emailTo1 = "neerajr@policybazaar.com";
+	String emailTo2 = "parveeny@policybazaar.com";
 	String emailCC1 = "";
 	String emailCC2 = "";
 
 	String emailSubject = "Automation Report:";
 	String emailBody = "PFA Automation Report.";
 
-	private final boolean IS_CHUNKED = true;
+	private final boolean chunks = true;
 	String fileToEncode = "C:\\eclipse\\Report.xls";
 	String encodedFilePath = "C:\\eclipse\\encoded.txt";
 
@@ -773,7 +779,7 @@ public class Wrapper {
 	public void encodeReport() {
 
 		try {
-			encode(fileToEncode, encodedFilePath, IS_CHUNKED);
+			encode(fileToEncode, encodedFilePath, chunks);
 		} catch (Exception e) {
 
 			e.printStackTrace();
@@ -785,23 +791,11 @@ public class Wrapper {
 		// String string = "";
 		try {
 
-			// Step1: Let's 1st read file from fileSystem
-			/*
-			 * InputStream crunchifyInputStream = new
-			 * FileInputStream("C:\\eclipse\\JSON.txt"); InputStreamReader
-			 * crunchifyReader = new InputStreamReader(crunchifyInputStream);
-			 * BufferedReader br = new BufferedReader(crunchifyReader); String
-			 * line; while ((line = br.readLine()) != null) { string += line +
-			 * "\n"; }
-			 * 
-			 * System.out.println("String Created :"+string);
-			 */
-
 			String Base64String = "";
 
-			InputStream crunchifyInputStream = new FileInputStream(encodedFilePath);
-			InputStreamReader crunchifyReader = new InputStreamReader(crunchifyInputStream);
-			BufferedReader br = new BufferedReader(crunchifyReader);
+			InputStream inputStream = new FileInputStream(encodedFilePath);
+			InputStreamReader reader = new InputStreamReader(inputStream);
+			BufferedReader br = new BufferedReader(reader);
 			String line;
 			while ((line = br.readLine()) != null) {
 				Base64String += line;
